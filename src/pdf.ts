@@ -3,6 +3,8 @@ import type { PdfRequestBody } from './types';
 
 export async function convertPdf(request: PdfRequestBody): Promise<Uint8Array> {
     const browser = await puppeteer.launch({
+        executablePath: process.env.IS_DEV === 'true' ? undefined : "/usr/bin/chromium",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
