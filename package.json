@@ -1,0 +1,23 @@
+{
+  "name": "gotham-pdf",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "authors": {
+    "author": "Marcos",
+    "website": ""
+  },
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch run index.ts",
+    "start": "bun run index.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "puppeteer": "^25.2.1"
+  }
+}
