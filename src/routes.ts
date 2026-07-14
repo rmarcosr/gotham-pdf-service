@@ -1,5 +1,8 @@
 import { convertPdf } from "./pdf";
-import type { PdfRequestBody } from "./types";
+import { isPdfRequestBody, type PdfRequestBody } from "./types";
+import { ZodError, z } from "zod";
+
+
 
 export const routes = {
     '/': () => new Response(null, { status: 200 }),
@@ -15,8 +18,13 @@ async function pdfHandler(req: Request) {
     try {
         const body = await req.json() as PdfRequestBody;
 
-        if (!body.html) {
-            return new Response('Bad Request: Missing html field', { status: 400 });
+        try {
+            isPdfRequestBody(body);
+        } catch (error) {
+            if (error instanceof ZodError) {
+                return new Response(JSON.stringify({ errors: z.flattenError(error).fieldErrors }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
 
         const pdf = await convertPdf(body);
@@ -30,7 +38,7 @@ async function pdfHandler(req: Request) {
         })
 
     } catch (error) {
-        return new Response('Internal Server Error', { status: 500 });
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 }
 

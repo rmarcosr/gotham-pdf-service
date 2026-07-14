@@ -14,8 +14,9 @@ export async function convertPdf(request: PdfRequestBody): Promise<Uint8Array> {
     });
 
     const pdf = await page.pdf({
-        format: request.page?.format ?? 'A4',
+        format: request.page?.format,
         landscape: request.page?.orientation === 'horizontal',
+        scale: request.scale,
         margin: request.page?.margin ? {
             bottom: request.page.margin.bottom,
             left: request.page.margin.left,
