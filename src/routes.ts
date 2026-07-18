@@ -1,5 +1,5 @@
 import { convertPdf } from "./pdf";
-import { isPdfRequestBody, type PdfRequestBody } from "./types";
+import { parsePdfRequestBody } from "./types";
 import { ZodError, z } from "zod";
 
 
@@ -16,18 +16,32 @@ async function pdfHandler(req: Request) {
     }
 
     try {
-        const body = await req.json() as PdfRequestBody;
+        const json = await req.json();
 
+        let body;
         try {
-            isPdfRequestBody(body);
+            body = parsePdfRequestBody(json);
         } catch (error) {
             if (error instanceof ZodError) {
-                return new Response(JSON.stringify({ errors: z.flattenError(error).fieldErrors }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                return new Response(JSON.stringify({
+                    errors: z.flattenError(error).fieldErrors
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             }
             return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
         }
 
-        const pdf = await convertPdf(body);
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, body.timeout);
+
+        const pdf = await convertPdf(body, signal);
+        clearTimeout(timeoutId);
 
         return new Response(pdf, {
             status: 200,
@@ -38,7 +52,16 @@ async function pdfHandler(req: Request) {
         })
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        if (error instanceof Error && error.name === 'AbortError') {
+            return new Response(JSON.stringify({ error: 'Request timed out' }), {
+                status: 408,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }
 

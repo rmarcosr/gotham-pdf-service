@@ -5,6 +5,7 @@ export type PdfRequestBody = z.infer<typeof PdfRequestSchema>;
 export const PdfRequestSchema = z.object({
     html: z.string(),
     scale: z.number().optional(),
+    timeout: z.number().optional().default(30000),
     page: z.object({
         format: z.enum(['A6','A5', 'A4', 'A3', 'A2', 'A1']).optional().default('A4'),
         orientation: z.enum(['vertical', 'horizontal']).optional(),
@@ -20,6 +21,6 @@ export const PdfRequestSchema = z.object({
 
 
 
-export function isPdfRequestBody(obj: any): asserts obj is PdfRequestBody {
-    PdfRequestSchema.parse(obj);
+export function parsePdfRequestBody(obj: unknown): PdfRequestBody {
+    return PdfRequestSchema.parse(obj);
 }
