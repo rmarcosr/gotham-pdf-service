@@ -1,14 +1,40 @@
 import { convertPdf } from "./pdf";
 import { parsePdfRequestBody } from "./types";
 import { ZodError, z } from "zod";
+import { timingSafeEqual } from "node:crypto"
 
+const TOKEN = process.env.TOKEN;
 
 
 export const routes = {
     '/': () => new Response(null, { status: 200 }),
-    '/pdf': pdfHandler,
+    '/pdf': withAuth(pdfHandler),
 };
 
+
+function withAuth(handler: (req: Request) => Response | Promise<Response>) {
+    return async (req: Request): Promise<Response> => {
+        const headerToken = req.headers.get('x-api-key');
+
+        if (!headerToken) {
+            return new Response(JSON.stringify({ error: 'Missing token' }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const a = Buffer.from(headerToken, 'utf-8');
+        const b = Buffer.from(TOKEN || '', 'utf-8');
+
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
+            return new Response(JSON.stringify({ error: 'Invalid token' }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        return handler(req);
+    };
+}
 
 async function pdfHandler(req: Request) {
     if (req.method !== 'POST') {
